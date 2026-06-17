@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VILLEFORT · Portal de Ferramentas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2333;
+    --border: #2a2f42;
+    --accent: #4f7cff;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: .08em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 3px 10px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .header-badge {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ─── LAYOUT ─── */
+  .main {
+    display: flex;
+    flex: 1;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px 8px;
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background .15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(79,124,255,.15); color: var(--accent); }
+  .nav-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-icon { background: rgba(79,124,255,.2); }
+  .nav-text { line-height: 1.3; }
+  .nav-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .nav-item.active .nav-sub { color: rgba(79,124,255,.7); }
+
+  /* ─── CONTENT ─── */
+  .content {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+    max-width: 860px;
+  }
+
+  .tool-panel { display: none; }
+  .tool-panel.active { display: block; }
+
+  .tool-header { margin-bottom: 28px; }
+  .tool-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .tool-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .tool-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ─── CARD / SECTION ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ─── FORM ELEMENTS ─── */
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: .04em;
+  }
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color .15s;
+    margin-bottom: 14px;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus {
+    border-color: var(--accent);
+  }
+  .input-group {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .input-group span {
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+    background: var(--surface2);
+    border-right: 1px solid var(--border);
+  }
+  .input-group input[type="text"] {
+    border: none;
+    margin: 0;
+    flex: 1;
+    border-radius: 0;
+  }
+  .input-group .suffix-span {
+    border-right: none;
+    border-left: 1px solid var(--border);
+  }
+
+  /* ─── DROP ZONE ─── */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 14px;
+    background: var(--bg);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(79,124,255,.04);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .drop-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .drop-sub { font-size: 12px; color: var(--muted); }
+  .file-list { margin-top: 10px; }
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: var(--mono);
+    margin: 3px;
+    color: var(--text);
+  }
+  .file-chip button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+  }
+  .file-chip button:hover { color: var(--red); }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #3d6bf0; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-green {
+    background: rgba(34,197,94,.15);
+    color: var(--green);
+    border: 1px solid rgba(34,197,94,.3);
+  }
+  .btn-green:hover { background: rgba(34,197,94,.25); }
+  .btn-green:disabled { opacity: .3; cursor: not-allowed; }
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+
+  /* ─── STATUS / OUTPUT ─── */
+  .status-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 48px;
+    margin-top: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .status-box.ok { border-color: rgba(34,197,94,.4); color: var(--green); }
+  .status-box.err { border-color: rgba(239,68,68,.4); color: var(--red); }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .result-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 14px;
+    text-align: center;
+  }
+  .result-card .rc-count {
+    font-size: 28px;
+    font-weight: 800;
+    font-family: var(--mono);
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .result-card .rc-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  @media (max-width: 680px) {
+    .sidebar { display: none; }
+    .content { padding: 20px 16px; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">VF</div>
+  <span class="header-title">Portal de Ferramentas · Processamento de Dados</span>
+  <span class="header-badge">6 ferramentas</span>
+</header>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-label">Ferramentas</div>
+    <button class="nav-item active" onclick="showTool('t1', this)">
+      <div class="nav-icon">📄</div>
+      <div class="nav-text">
+        Processamento de Margem - Castanhal TXT
+        <div class="nav-sub">TXT → CSV (F/D/P)</div>
+      </div>
+    </button>
+    <button class="nav-item" onclick="showTool('t2', this)">
+      <div class="nav-icon">🏛</div>
+      <div class="nav-text">
+        Processamento de Margem - Codó / MA
+        <div class="nav-sub">XLSX folha pagamento</div>
+      </div>
+    </button>
+    <button class="nav-item" onclick="showTool('t3', this)">
+      <div class="nav-icon">📊</div>
+      <div class="nav-text">
+        Processamento de Margem - Sto. Antônio Patrulha
+        <div class="nav-sub">XLSX eventos → CSV</div>
+      </div>
+    </button>
+    <button class="nav-item" onclick="showTool('t4', this)">
+      <div class="nav-icon">🗓</div>
+      <div class="nav-text">
+        Renomeador de Arquivos (Geral)
+        <div class="nav-sub">MM_YYYY + complemento</div>
+      </div>
+    </button>
+    <button class="nav-item" onclick="showTool('t5', this)">
+      <div class="nav-icon">✏️</div>
+      <div class="nav-text">
+        Prefeitura de Castanha - Matrícula Excel
+        <div class="nav-sub">Insere hífen na matrícula Castanhal</div>
+      </div>
+    </button>
+    <button class="nav-item" onclick="showTool('t6', this)">
+      <div class="nav-icon">🔍</div>
+      <div class="nav-text">
+        Fechamento Porto Nacional
+        <div class="nav-sub">TXT validados + exceções</div>
+      </div>
+    </button>
+  </nav>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════════
+         T1 · CASTANHAL — TXT → 3 CSV
+    ═══════════════════════════════════════════════ -->
+    <div class="tool-panel active" id="t1">
+      <div class="tool-header">
+        <div class="tool-eyebrow">Ferramenta 1 · Castanhal</div>
+        <div class="tool-title">Processador TXT → CSV</div>
+        <div class="tool-desc">Lê um arquivo TXT delimitado por <code>;</code> e gera três CSVs: <strong>servidor</strong> (linhas com F), <strong>movimentacao</strong> (D/P) e <strong>evento</strong> (colunas reordenadas + deduplicado).</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Configuração</div>
+        <label class="field-label">Complemento do nome de arquivo</label>
+        <input type="text" id="t1-suffix" placeholder="ex: MAIO_2025">
+
+        <label class="field-label">Arquivo TXT</label>
+        <div class="drop-zone" id="t1-drop">
+          <input type="file" id="t1-file" accept=".txt">
+          <div class="drop-icon">📂</div>
+          <div class="drop-title">Arraste o TXT aqui</div>
+          <div class="drop-sub">ou clique para selecionar</div>
+        </div>
+        <div id="t1-fname" style="font-size:12px;color:var(--muted);font-family:var(--mono);"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="t1Process()">⚙ Processar</button>
+        </div>
+        <div class="status-box" id="t1-status">Aguardando arquivo…</div>
+
+        <div class="result-grid" id="t1-results" style="display:none">
+          <div class="result-card">
+            <div class="rc-count" id="t1-cnt-s">0</div>
+            <div class="rc-label">servidor</div>
+            <button class="btn btn-green btn-sm" id="t1-dl-s" onclick="t1Download('s')" disabled>⬇ Baixar</button>
+          </div>
+          <div class="result-card">
+            <div class="rc-count" id="t1-cnt-m">0</div>
+            <div class="rc-label">movimentacao</div>
+            <button class="btn btn-green btn-sm" id="t1-dl-m" onclick="t1Download('m')" disabled>⬇ Baixar</button>
+          </div>
+          <div class="result-card">
+            <div class="rc-count" id="t1-cnt-e">0</div>
+            <div class="rc-label">evento</div>
+            <button class="btn btn-green btn-sm" id="t1-dl-e" onclick="t1Download('e')" disabled>⬇ Baixar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+         T2 · CODÓ — XLSX FOLHA PAGAMENTO
+    ═══════════════════════════════════════════════ -->
+    <div class="tool-panel" id="t2">
+      <div class="tool-header">
+        <div class="tool-eyebrow">Ferramenta 2 · Codó / MA</div>
+        <div class="tool-title">Conversor de Folha de Pagamento (XLSX)</div>
+        <div class="tool-desc">Converte planilhas de folha no formato horizontal (wide) para CSVs de <strong>movimentacao</strong>, <strong>servidor</strong> e <strong>evento</strong>. Suporta múltiplos arquivos simultaneamente.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Seção A · Folha de Pagamento</div>
+        <label class="field-label">Sufixo dos arquivos gerados</label>
+        <input type="text" id="t2-suffix" placeholder="ex: JUNHO_2025">
+
+        <label class="field-label">Arquivos XLSX de folha</label>
+        <div class="drop-zone" id="t2-drop-a">
+          <input type="file" id="t2-files-a" accept=".xlsx,.xls" multiple>
+          <div class="drop-icon">📊</div>
+          <div class="drop-title">Arraste os XLSX aqui</div>
+          <div class="drop-sub">múltiplos arquivos aceitos</div>
+        </div>
+        <div class="file-list" id="t2-list-a"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="t2ProcessFolha()">⚙ Gerar movimentacao + evento</button>
+        </div>
+        <div class="status-box" id="t2-status-a">Aguardando arquivo…</div>
+        <div class="result-grid" id="t2-res-a" style="display:none">
+          <div class="result-card">
+            <div class="rc-count" id="t2-cnt-m">0</div>
+            <div class="rc-label">movimentacao</div>
+            <button class="btn btn-green btn-sm" id="t2-dl-m" onclick="t2Dl('m')" disabled>⬇ Baixar</button>
+          </div>
+          <div class="result-card">
+            <div class="rc-count" id="t2-cnt-e">0</div>
+            <div class="rc-label">evento</div>
+            <button class="btn btn-green btn-sm" id="t2-dl-e" onclick="t2Dl('e')" disabled>⬇ Baixar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Seção B · Cadastro de Servidores</div>
+        <label class="field-label">Arquivos XLSX de servidor</label>
+        <div class="drop-zone" id="t2-drop-b">
+          <input type="file" id="t2-files-b" accept=".xlsx,.xls" multiple>
+          <div class="drop-icon">👤</div>
+          <div class="drop-title">Arraste os XLSX aqui</div>
+          <div class="drop-sub">múltiplos arquivos aceitos</div>
+        </div>
+        <div class="file-list" id="t2-list-b"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="t2ProcessServidor()">⚙ Gerar servidor</button>
+        </div>
+        <div class="status-box" id="t2-status-b">Aguardando arquivo…</div>
+        <div class="result-grid" id="t2-res-b" style="display:none">
+          <div class="result-card">
+            <div class="rc-count" id="t2-cnt-s">0</div>
+            <div class="rc-label">servidor</div>
+            <button class="btn btn-green btn-sm" id="t2-dl-s" onclick="t2Dl('s')" disabled>⬇ Baixar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+         T3 · SANTO ANTÔNIO DA PATRULHA — XLSX EVENTOS
+    ═══════════════════════════════════════════════ -->
+    <div class="tool-panel" id="t3">
+      <div class="tool-header">
+        <div class="tool-eyebrow">Ferramenta 3 · Sto. Antônio da Patrulha</div>
+        <div class="tool-title">Processador de Eventos (XLSX → CSV)</div>
+        <div class="tool-desc">Lê relatórios gerenciais <code>.xlsx</code> com eventos agrupados e exporta um CSV consolidado com <strong>Matrícula; Nome; Valor; Evento; Descrição</strong>. Suporte a múltiplos arquivos.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Configuração</div>
+        <label class="field-label">Complemento do arquivo de saída</label>
+        <div class="input-group">
+          <span>Movimentacao_</span>
+          <input type="text" id="t3-suffix" placeholder="MAIO_2025">
+          <span class="suffix-span">.csv</span>
+        </div>
+
+        <label class="field-label">Arquivos XLSX</label>
+        <div class="drop-zone" id="t3-drop">
+          <input type="file" id="t3-files" accept=".xlsx,.xls" multiple>
+          <div class="drop-icon">📊</div>
+          <div class="drop-title">Arraste os XLSX aqui</div>
+          <div class="drop-sub">múltiplos arquivos aceitos</div>
+        </div>
+        <div class="file-list" id="t3-list"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="t3Process()">⚙ Processar</button>
+        </div>
+        <div class="status-box" id="t3-status">Aguardando arquivo…</div>
+
+        <div class="result-grid" id="t3-results" style="display:none">
+          <div class="result-card">
+            <div class="rc-count" id="t3-cnt">0</div>
+            <div class="rc-label">registros</div>
+            <button class="btn btn-green btn-sm" id="t3-dl" onclick="t3Download()" disabled>⬇ Baixar CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+         T4 · RENOMEADOR DE ARQUIVOS
+    ═══════════════════════════════════════════════ -->
+    <div class="tool-panel" id="t4">
+      <div class="tool-header">
+        <div class="tool-eyebrow">Ferramenta 4</div>
+        <div class="tool-title">Renomeador de Arquivos com Data</div>
+        <div class="tool-desc">Adiciona <strong>MM_AAAA_</strong> (e complemento opcional) ao início dos nomes de arquivo. Aceita ZIPs — extrai e renomeia o conteúdo automaticamente. Baixa tudo num ZIP final.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Configuração</div>
+        <div class="two-col">
+          <div>
+            <label class="field-label">Mês</label>
+            <select id="t4-month">
+              <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+              <option value="03">Março</option><option value="04">Abril</option>
+              <option value="05">Maio</option><option value="06">Junho</option>
+              <option value="07">Julho</option><option value="08">Agosto</option>
+              <option value="09">Setembro</option><option value="10">Outubro</option>
+              <option value="11">Novembro</option><option value="12">Dezembro</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Ano</label>
+            <input type="number" id="t4-year" value="2025" min="2000" max="2099">
+          </div>
+        </div>
+        <label class="field-label">Complemento (opcional)</label>
+        <input type="text" id="t4-complement" placeholder="ex: RELATORIO → 06_2025_RELATORIO_arquivo.txt">
+
+        <button class="btn btn-secondary btn-sm" onclick="t4Today()" style="margin-bottom:14px">📅 Usar mês/ano atual</button>
+
+        <label class="field-label">Arquivos (qualquer tipo, incluindo ZIP)</label>
+        <div class="drop-zone" id="t4-drop">
+          <input type="file" id="t4-files" multiple>
+          <div class="drop-icon">📁</div>
+          <div class="drop-title">Arraste os arquivos aqui</div>
+          <div class="drop-sub">ZIP será extraído automaticamente</div>
+        </div>
+        <div id="t4-preview-wrap" style="display:none;margin-top:14px">
+          <div class="card-title">Prévia · <span id="t4-sel-count">0</span> selecionados</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="btn btn-secondary btn-sm" onclick="t4SelectAll(true)">Selecionar tudo</button>
+            <button class="btn btn-secondary btn-sm" onclick="t4SelectAll(false)">Desmarcar tudo</button>
+          </div>
+          <div id="t4-table-wrap" style="overflow-x:auto">
+            <table id="t4-preview" style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)">
+              <thead>
+                <tr style="color:var(--muted);border-bottom:1px solid var(--border)">
+                  <th style="padding:6px 8px;text-align:left;width:28px"></th>
+                  <th style="padding:6px 8px;text-align:left">Nome original</th>
+                  <th style="padding:6px 8px;text-align:left;color:var(--accent)">Novo nome</th>
+                </tr>
+              </thead>
+              <tbody id="t4-tbody"></tbody>
+            </table>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-green" id="t4-dl-btn" onclick="t4Download()">⬇ Baixar selecionados como ZIP</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+         T5 · PROCESSADOR MATRÍCULA EXCEL
+    ═══════════════════════════════════════════════ -->
+    <div class="tool-panel" id="t5">
+      <div class="tool-header">
+        <div class="tool-eyebrow">Ferramenta 5</div>
+        <div class="tool-title">Processador de Matrícula Prefeitura de Castanhal (Excel)</div>
+        <div class="tool-desc">Lê arquivos <code>.xlsx</code>/<code>.xls</code>, insere um hífen antes do último dígito da coluna <strong>MATRÍCULA</strong> (ex: <code>2100015</code> → <code>210001-5</code>), copia para <strong>MATRÍCULA ORIGEM</strong> e exporta com prefixo de data.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Arquivo XLSX</div>
+        <div class="drop-zone" id="t5-drop">
+          <input type="file" id="t5-file" accept=".xlsx,.xls">
+          <div class="drop-icon">📊</div>
+          <div class="drop-title">Arraste o XLSX aqui</div>
+          <div class="drop-sub">ou clique para selecionar</div>
+        </div>
+        <div id="t5-fname" style="font-size:12px;color:var(--muted);font-family:var(--mono);"></div>
+
+        <div class="two-col" style="margin-top:8px">
+          <div>
+            <label class="field-label">Mês de saída</label>
+            <select id="t5-month">
+              <option value="01">01</option><option value="02">02</option>
+              <option value="03">03</option><option value="04">04</option>
+              <option value="05">05</option><option value="06">06</option>
+              <option value="07">07</option><option value="08">08</option>
+              <option value="09">09</option><option value="10">10</option>
+              <option value="11">11</option><option value="12">12</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Ano de saída</label>
+            <input type="number" id="t5-year" value="2025" min="2000" max="2099">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="t5Process()">⚙ Processar e Baixar</button>
+        </div>
+        <div class="status-box" id="t5-status">Aguardando arquivo…</div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════
+         T6 · FECHAMENTO PORTO NACIONAL
+    ═══════════════════════════════════════════════ -->
+    <div class="tool-panel" id="t6">
+      <div class="tool-header">
+        <div class="tool-eyebrow">Ferramenta 6 · Porto Nacional</div>
+        <div class="tool-title">Fechamento · Comparador TXT</div>
+        <div class="tool-desc">Filtra linhas do Arquivo 1 que contenham <code>00100000600</code>, compara a matrícula com o Arquivo 2 (CSV) e gera <strong>dados_validados</strong> e <strong>excecoes_sem_match</strong>. Também gera um arquivo limpo sem as linhas excluídas.</div>
+      </div>
+
+      <div class="card">
+        <div class="two-col">
+          <div>
+            <div class="card-title">Arquivo 1 (TXT origem)</div>
+            <div class="drop-zone" id="t6-drop-a">
+              <input type="file" id="t6-file-a" accept=".txt,.ret,.rem">
+              <div class="drop-icon">📄</div>
+              <div class="drop-title">TXT / RET / REM</div>
+              <div class="drop-sub">arquivo de origem</div>
+            </div>
+            <div id="t6-fname-a" style="font-size:11px;color:var(--muted);font-family:var(--mono);"></div>
+          </div>
+          <div>
+            <div class="card-title">Arquivo 2 (CSV comparação)</div>
+            <div class="drop-zone" id="t6-drop-b">
+              <input type="file" id="t6-file-b" accept=".csv,.txt">
+              <div class="drop-icon">📋</div>
+              <div class="drop-title">CSV / TXT</div>
+              <div class="drop-sub">base de comparação</div>
+            </div>
+            <div id="t6-fname-b" style="font-size:11px;color:var(--muted);font-family:var(--mono);"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px">
+          <label class="field-label">Intervalo de linhas a remover do arquivo limpo (opcional)</label>
+          <div class="two-col">
+            <div>
+              <label class="field-label">Linha início</label>
+              <input type="number" id="t6-lstart" placeholder="ex: 100" min="1">
+            </div>
+            <div>
+              <label class="field-label">Linha fim</label>
+              <input type="number" id="t6-lend" placeholder="ex: 200" min="1">
+            </div>
+          </div>
+          <label class="field-label">Sufixo do arquivo limpo (opcional)</label>
+          <input type="text" id="t6-clean-suffix" placeholder="ex: _ajustado">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="t6Process()">⚙ Processar e Comparar</button>
+        </div>
+        <div class="status-box" id="t6-status">Aguardando arquivos…</div>
+
+        <div class="result-grid" id="t6-results" style="display:none">
+          <div class="result-card">
+            <div class="rc-count" id="t6-cnt-v">0</div>
+            <div class="rc-label">validados (match)</div>
+            <button class="btn btn-green btn-sm" id="t6-dl-v" onclick="t6Dl('v')" disabled>⬇ Baixar</button>
+          </div>
+          <div class="result-card">
+            <div class="rc-count" id="t6-cnt-e">0</div>
+            <div class="rc-label">sem match</div>
+            <button class="btn btn-green btn-sm" id="t6-dl-e" onclick="t6Dl('e')" disabled>⬇ Baixar</button>
+          </div>
+          <div class="result-card">
+            <div class="rc-count" id="t6-cnt-c">0</div>
+            <div class="rc-label">arquivo limpo</div>
+            <button class="btn btn-green btn-sm" id="t6-dl-c" onclick="t6Dl('c')" disabled>⬇ Baixar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   NAVEGAÇÃO
+───────────────────────────────────────────────────────── */
+function showTool(id, btn) {
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* drag-over highlight helper */
+document.querySelectorAll('.drop-zone').forEach(z => {
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('dragover'); });
+  z.addEventListener('dragleave', () => z.classList.remove('dragover'));
+  z.addEventListener('drop', () => z.classList.remove('dragover'));
+});
+
+/* ─────────────────────────────────────────────────────────
+   UTILS GERAIS
+───────────────────────────────────────────────────────── */
+function bom(str) { return '\uFEFF' + str; }
+function triggerDownload(blob, fname) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+}
+function setStatus(id, msg, type='') {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'status-box' + (type ? ' ' + type : '');
+}
+function readFileText(file, enc='ISO-8859-1') {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsText(file, enc);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────
+   T1 · CASTANHAL TXT → 3 CSV
+───────────────────────────────────────────────────────── */
+let t1Blobs = {};
+document.getElementById('t1-file').addEventListener('change', function() {
+  const f = this.files[0];
+  if (f) document.getElementById('t1-fname').textContent = '📄 ' + f.name;
+});
+
+async function t1Process() {
+  const fileEl = document.getElementById('t1-file');
+  if (!fileEl.files.length) { setStatus('t1-status','Selecione um arquivo TXT.','err'); return; }
+  const suffix = document.getElementById('t1-suffix').value.trim();
+  setStatus('t1-status','Processando…');
+  try {
+    const text = await readFileText(fileEl.files[0]);
+    const lines = text.split('\n').map(l => l.trimEnd()).filter(l => l.trim());
+    const servidor = [], movimentacao = [], eventoMap = new Map();
+    for (const line of lines) {
+      const cols = line.split(';');
+      const key = cols[0] ? cols[0].trim().toUpperCase() : '';
+      if (key.startsWith('F')) servidor.push(line);
+      else if (key.startsWith('D') || key.startsWith('P')) {
+        movimentacao.push(line);
+        const c6 = (cols[5] || '').trim();
+        const c7 = (cols[6] || '').trim();
+        const c1 = cols[0].trim();
+        const mapKey = c6 + '|' + c7;
+        if (!eventoMap.has(mapKey)) eventoMap.set(mapKey, [c6, c7, c1]);
+      }
+    }
+    const eventoRows = Array.from(eventoMap.values());
+    const suf = suffix ? '_' + suffix : '';
+    t1Blobs = {
+      s: new Blob([bom(servidor.join('\r\n'))], { type:'text/csv;charset=utf-8' }),
+      m: new Blob([bom(movimentacao.join('\r\n'))], { type:'text/csv;charset=utf-8' }),
+      e: new Blob([bom(eventoRows.map(r => r.join(';')).join('\r\n'))], { type:'text/csv;charset=utf-8' })
+    };
+    document.getElementById('t1-cnt-s').textContent = servidor.length;
+    document.getElementById('t1-cnt-m').textContent = movimentacao.length;
+    document.getElementById('t1-cnt-e').textContent = eventoRows.length;
+    ['s','m','e'].forEach(k => { document.getElementById('t1-dl-'+k).disabled = false; });
+    document.getElementById('t1-results').style.display = 'grid';
+    setStatus('t1-status', `✔ Concluído — ${lines.length} linhas lidas. Sufixo: "${suffix || '(nenhum)'}"`, 'ok');
+    // store suffix for filenames
+    t1Blobs._suf = suf;
+  } catch(e) { setStatus('t1-status','Erro: '+e.message,'err'); }
+}
+function t1Download(k) {
+  const names = { s:'servidor', m:'movimentacao', e:'evento' };
+  const suf = t1Blobs._suf || '';
+  triggerDownload(t1Blobs[k], names[k] + suf + '.csv');
+}
+
+/* ─────────────────────────────────────────────────────────
+   T2 · CODÓ — XLSX FOLHA
+───────────────────────────────────────────────────────── */
+let t2Blobs = {}, t2FilesA = [], t2FilesB = [];
+
+function makeFileList(files, listId, arr) {
+  arr.length = 0;
+  Array.from(files).forEach(f => arr.push(f));
+  renderList(listId, arr);
+}
+function renderList(listId, arr) {
+  const el = document.getElementById(listId);
+  el.innerHTML = arr.map((f,i) =>
+    `<span class="file-chip">📄 ${f.name} <button onclick="removeFile('${listId}',${i})">×</button></span>`
+  ).join('');
+}
+function removeFile(listId, idx) {
+  const map = { 't2-list-a': t2FilesA, 't2-list-b': t2FilesB, 't3-list': t3Files };
+  map[listId].splice(idx, 1);
+  renderList(listId, map[listId]);
+}
+
+document.getElementById('t2-files-a').addEventListener('change', function() {
+  makeFileList(this.files, 't2-list-a', t2FilesA);
+});
+document.getElementById('t2-files-b').addEventListener('change', function() {
+  makeFileList(this.files, 't2-list-b', t2FilesB);
+});
+
+function readXlsx(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type:'array', cellDates:false });
+        res(wb);
+      } catch(err) { rej(err); }
+    };
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function excelDateToStr(serial) {
+  if (typeof serial !== 'number') return '';
+  const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yy = d.getUTCFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+function cleanCPF(v) { return String(v).replace(/\D/g,''); }
+
+async function t2ProcessFolha() {
+  if (!t2FilesA.length) { setStatus('t2-status-a','Selecione pelo menos um XLSX.','err'); return; }
+  setStatus('t2-status-a','Processando…');
+  try {
+    const suffix = document.getElementById('t2-suffix').value.trim();
+    const suf = suffix ? '_' + suffix : '';
+    let movRows = [], eventoMap = new Map();
+
+    for (const file of t2FilesA) {
+      const wb = await readXlsx(file);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+      if (data.length < 2) continue;
+
+      const headerRow = data[0];
+      // Find event code/desc pairs: pattern = numeric, then text description
+      const eventCols = []; // [{codIdx, descIdx}]
+      for (let c = 0; c < headerRow.length - 1; c++) {
+        const h = String(headerRow[c]).trim();
+        const hn = String(headerRow[c+1]).trim();
+        if (/^\d+$/.test(h) && hn && !/^\d+$/.test(hn)) {
+          eventCols.push({ cod: h, descIdx: c+1 });
+          if (!eventoMap.has(h)) eventoMap.set(h, hn);
+        }
+      }
+
+      // Find fixed columns
+      const colIdx = {};
+      headerRow.forEach((h,i) => {
+        const k = String(h).trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+        colIdx[k] = i;
+      });
+
+      for (let r = 1; r < data.length; r++) {
+        const row = data[r];
+        const reg = String(row[colIdx['REGISTRO'] ?? colIdx['MATRICULA'] ?? colIdx['MAT'] ?? 0] ?? '').trim();
+        if (!reg || !/^\d/.test(reg)) continue;
+        const atrib = String(row[colIdx['ATRIBUTO'] ?? colIdx['TIPO'] ?? 1] ?? '').trim();
+        for (const ec of eventCols) {
+          const val = row[ec.descIdx];
+          if (val === '' || val === null || val === undefined) continue;
+          const valFmt = typeof val === 'number'
+            ? val.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2})
+            : String(val).trim();
+          movRows.push([reg, ec.cod, valFmt]);
+        }
+      }
+    }
+
+    const movCsv = 'Registro;Atributo;Valor\r\n' + movRows.map(r => r.join(';')).join('\r\n');
+    const evtRows = Array.from(eventoMap.entries()).sort((a,b) => +a[0]-+b[0]);
+    const evtCsv = 'COD;DES\r\n' + evtRows.map(r => r.join(';')).join('\r\n');
+
+    t2Blobs.m = new Blob([bom(movCsv)], {type:'text/csv;charset=utf-8'});
+    t2Blobs.e = new Blob([bom(evtCsv)], {type:'text/csv;charset=utf-8'});
+    t2Blobs._suf = suf;
+
+    document.getElementById('t2-cnt-m').textContent = movRows.length;
+    document.getElementById('t2-cnt-e').textContent = evtRows.length;
+    ['m','e'].forEach(k => document.getElementById('t2-dl-'+k).disabled = false);
+    document.getElementById('t2-res-a').style.display = 'grid';
+    setStatus('t2-status-a', `✔ ${movRows.length} movimentações | ${evtRows.length} eventos únicos`, 'ok');
+  } catch(e) { setStatus('t2-status-a','Erro: '+e.message,'err'); }
+}
+
+async function t2ProcessServidor() {
+  if (!t2FilesB.length) { setStatus('t2-status-b','Selecione pelo menos um XLSX.','err'); return; }
+  setStatus('t2-status-b','Processando…');
+  try {
+    const suffix = document.getElementById('t2-suffix').value.trim();
+    const suf = suffix ? '_' + suffix : '';
+    let rows = [];
+
+    for (const file of t2FilesB) {
+      const wb = await readXlsx(file);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+      if (data.length < 2) continue;
+      const header = data[0].map(h => String(h).trim());
+      const cpfIdx = header.findIndex(h => /CPF/i.test(h));
+      const nascIdx = header.findIndex(h => /NASC/i.test(h));
+
+      for (let r = 1; r < data.length; r++) {
+        const row = [...data[r]];
+        if (cpfIdx >= 0) row[cpfIdx] = cleanCPF(row[cpfIdx]);
+        if (nascIdx >= 0) {
+          const v = row[nascIdx];
+          if (typeof v === 'number') row[nascIdx] = excelDateToStr(v);
+        }
+        // append TIPO = EFETIVOS
+        rows.push([...row, 'EFETIVOS']);
+      }
+    }
+
+    const headerRow = (() => {
+      // try to get headers from first file
+      return ['(dados do servidor)','...','Tipo'];
+    })();
+    const csv = rows.map(r => r.join(';')).join('\r\n');
+    t2Blobs.s = new Blob([bom(csv)], {type:'text/csv;charset=utf-8'});
+    t2Blobs._suf = suf;
+
+    document.getElementById('t2-cnt-s').textContent = rows.length;
+    document.getElementById('t2-dl-s').disabled = false;
+    document.getElementById('t2-res-b').style.display = 'grid';
+    setStatus('t2-status-b', `✔ ${rows.length} servidores processados`, 'ok');
+  } catch(e) { setStatus('t2-status-b','Erro: '+e.message,'err'); }
+}
+
+function t2Dl(k) {
+  const names = { m:'movimentacao', e:'evento', s:'servidor' };
+  const suf = t2Blobs._suf || '';
+  triggerDownload(t2Blobs[k], names[k] + suf + '.csv');
+}
+
+/* ─────────────────────────────────────────────────────────
+   T3 · SANTO ANTÔNIO — XLSX EVENTOS
+───────────────────────────────────────────────────────── */
+let t3Files = [], t3Blob = null;
+
+document.getElementById('t3-files').addEventListener('change', function() {
+  makeFileList(this.files, 't3-list', t3Files);
+});
+
+async function t3Process() {
+  if (!t3Files.length) { setStatus('t3-status','Selecione pelo menos um XLSX.','err'); return; }
+  setStatus('t3-status','Processando…');
+  try {
+    const suffix = document.getElementById('t3-suffix').value.trim();
+    let allRecords = [];
+
+    for (const file of t3Files) {
+      const wb = await readXlsx(file);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+
+      // Find header row containing "Mat." or "Matricula"
+      let headerRowIdx = -1;
+      let matIdx = -1, nomeIdx = -1, valorIdx = -1;
+      for (let r = 0; r < Math.min(data.length, 20); r++) {
+        const row = data[r];
+        const flatRow = row.map(c => String(c).trim().toUpperCase().replace(/[^A-Z0-9]/g,''));
+        const mi = flatRow.findIndex(c => c === 'MAT' || c === 'MATRICULA');
+        if (mi >= 0) {
+          headerRowIdx = r;
+          matIdx = mi;
+          nomeIdx = flatRow.findIndex(c => c === 'NOME' || c.includes('NOME'));
+          // Valor: look for column with numeric-ish header or "VALOR"
+          valorIdx = flatRow.findIndex((c,i) => i > nomeIdx && (c === 'VALOR' || c === 'VL' || /^\d+$/.test(String(data[r][i]).trim())));
+          if (valorIdx < 0) valorIdx = matIdx + 2; // fallback
+          break;
+        }
+      }
+      if (headerRowIdx < 0) { matIdx=0; nomeIdx=1; valorIdx=2; headerRowIdx=0; }
+
+      let eventoAtual = '', descAtual = '';
+      for (let r = headerRowIdx + 1; r < data.length; r++) {
+        const row = data[r];
+        const c0 = String(row[0] ?? '').trim();
+        const cMat = String(row[matIdx] ?? '').trim();
+
+        // Detect event header row: col 0 is numeric event code
+        if (/^\d{3,}$/.test(c0) && !/^\d{5,}$/.test(c0)) {
+          eventoAtual = c0;
+          descAtual = String(row[1] ?? '').trim();
+          continue;
+        }
+        // Detect employee row: mat is integer
+        if (!/^\d+$/.test(cMat.replace(/\D/g,''))) continue;
+        const mat = cMat;
+        const nome = String(row[nomeIdx] ?? '').trim();
+        const val = row[valorIdx];
+        if (!mat) continue;
+        const valFmt = typeof val === 'number'
+          ? val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
+          : String(val ?? '').trim();
+        allRecords.push([mat, nome, valFmt, eventoAtual, descAtual]);
+      }
+    }
+
+    const csv = 'Matrícula;Nome;Valor;Evento;Descrição\r\n' + allRecords.map(r => r.join(';')).join('\r\n');
+    t3Blob = new Blob([bom(csv)], { type:'text/csv;charset=utf-8' });
+    document.getElementById('t3-cnt').textContent = allRecords.length;
+    document.getElementById('t3-dl').disabled = false;
+    document.getElementById('t3-results').style.display = 'grid';
+    setStatus('t3-status', `✔ ${allRecords.length} registros de ${t3Files.length} arquivo(s)`, 'ok');
+  } catch(e) { setStatus('t3-status','Erro: '+e.message,'err'); }
+}
+
+function t3Download() {
+  const suffix = document.getElementById('t3-suffix').value.trim();
+  const suf = suffix || new Date().toISOString().slice(0,10).replace(/-/g,'');
+  triggerDownload(t3Blob, 'Movimentacao_' + suf + '.csv');
+}
+
+/* ─────────────────────────────────────────────────────────
+   T4 · RENOMEADOR
+───────────────────────────────────────────────────────── */
+let t4Items = []; // { name, file, blob }
+
+function t4Today() {
+  const now = new Date();
+  document.getElementById('t4-month').value = String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('t4-year').value = now.getFullYear();
+}
+
+function t4NewName(original) {
+  const mm = document.getElementById('t4-month').value;
+  const yy = document.getElementById('t4-year').value;
+  const comp = document.getElementById('t4-complement').value.trim()
+    .toUpperCase().replace(/[\s/\\:*?"<>|]/g,'_').replace(/_+/g,'_');
+  const prefix = mm + '_' + yy + (comp ? '_' + comp : '') + '_';
+  return prefix + original;
+}
+
+function t4RenderPreview() {
+  const tbody = document.getElementById('t4-tbody');
+  tbody.innerHTML = t4Items.map((item,i) => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 8px"><input type="checkbox" id="t4-chk-${i}" checked onchange="t4UpdateCount()"></td>
+      <td style="padding:6px 8px;color:var(--muted)">${item.name}</td>
+      <td style="padding:6px 8px;color:var(--accent)">${t4NewName(item.name)}</td>
+    </tr>`).join('');
+  document.getElementById('t4-preview-wrap').style.display = 'block';
+  t4UpdateCount();
+}
+
+function t4UpdateCount() {
+  const checked = t4Items.filter((_,i) => document.getElementById('t4-chk-'+i)?.checked).length;
+  document.getElementById('t4-sel-count').textContent = checked;
+}
+function t4SelectAll(v) {
+  t4Items.forEach((_,i) => { const el = document.getElementById('t4-chk-'+i); if(el) el.checked=v; });
+  t4UpdateCount();
+}
+
+document.getElementById('t4-files').addEventListener('change', async function() {
+  t4Items = [];
+  const files = Array.from(this.files);
+  for (const file of files) {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      try {
+        const zip = await JSZip.loadAsync(file);
+        for (const [relPath, entry] of Object.entries(zip.files)) {
+          if (entry.dir) continue;
+          const blob = await entry.async('blob');
+          const baseName = relPath.split('/').pop();
+          t4Items.push({ name: baseName, blob });
+        }
+      } catch { t4Items.push({ name: file.name, blob: file }); }
+    } else {
+      t4Items.push({ name: file.name, blob: file });
+    }
+  }
+  t4RenderPreview();
+});
+
+// re-render on config change
+['t4-month','t4-year','t4-complement'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (t4Items.length) t4RenderPreview();
+  });
+});
+
+async function t4Download() {
+  const selected = t4Items.filter((_,i) => document.getElementById('t4-chk-'+i)?.checked);
+  if (!selected.length) return;
+  if (selected.length === 1) {
+    triggerDownload(selected[0].blob, t4NewName(selected[0].name));
+    return;
+  }
+  const zip = new JSZip();
+  for (const item of selected) zip.file(t4NewName(item.name), item.blob);
+  const blob = await zip.generateAsync({ type:'blob' });
+  const mm = document.getElementById('t4-month').value;
+  const yy = document.getElementById('t4-year').value;
+  triggerDownload(blob, mm + '_' + yy + '_arquivos.zip');
+}
+
+/* ─────────────────────────────────────────────────────────
+   T5 · MATRÍCULA EXCEL
+───────────────────────────────────────────────────────── */
+document.getElementById('t5-file').addEventListener('change', function() {
+  const f = this.files[0];
+  if (f) document.getElementById('t5-fname').textContent = '📊 ' + f.name;
+});
+
+async function t5Process() {
+  const fileEl = document.getElementById('t5-file');
+  if (!fileEl.files.length) { setStatus('t5-status','Selecione um arquivo XLSX.','err'); return; }
+  setStatus('t5-status','Processando…');
+  const mm = document.getElementById('t5-month').value;
+  const yy = document.getElementById('t5-year').value;
+  try {
+    const wb = await readXlsx(fileEl.files[0]);
+    const wsName = wb.SheetNames[0];
+    const ws = wb.Sheets[wsName];
+    const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+
+    // Find MATRÍCULA column
+    const header = data[0] ?? [];
+    const matIdx = header.findIndex(h => /MAT/i.test(String(h)));
+    const matOrigIdx = header.findIndex(h => /ORIGEM/i.test(String(h)));
+
+    if (matIdx < 0) { setStatus('t5-status','Coluna MATRÍCULA não encontrada.','err'); return; }
+
+    // Clone wb for modification
+    const wbNew = XLSX.utils.book_new();
+    const wsNew = XLSX.utils.aoa_to_sheet(data.map((row, ri) => {
+      if (ri === 0) return row;
+      const newRow = [...row];
+      const val = String(newRow[matIdx] ?? '').trim();
+      if (val.length > 1) {
+        const transformed = val.slice(0, -1) + '-' + val.slice(-1);
+        newRow[matIdx] = { v: transformed, t: 's' };
+        if (matOrigIdx >= 0) newRow[matOrigIdx] = { v: transformed, t: 's' };
+      }
+      return newRow;
+    }));
+    XLSX.utils.book_append_sheet(wbNew, wsNew, wsName);
+
+    const origName = fileEl.files[0].name.replace(/\.[^.]+$/, '');
+    const ext = fileEl.files[0].name.match(/\.[^.]+$/)?.[0] ?? '.xlsx';
+    const outName = `${mm}_${yy}_${origName}${ext}`;
+
+    const buf = XLSX.write(wbNew, { bookType:'xlsx', type:'array' });
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    triggerDownload(blob, outName);
+    setStatus('t5-status', `✔ Arquivo gerado: ${outName}`, 'ok');
+  } catch(e) { setStatus('t5-status','Erro: '+e.message,'err'); }
+}
+
+/* ─────────────────────────────────────────────────────────
+   T6 · PORTO NACIONAL — COMPARADOR TXT
+───────────────────────────────────────────────────────── */
+let t6Blobs = {};
+document.getElementById('t6-file-a').addEventListener('change', function() {
+  if(this.files[0]) document.getElementById('t6-fname-a').textContent = '📄 ' + this.files[0].name;
+});
+document.getElementById('t6-file-b').addEventListener('change', function() {
+  if(this.files[0]) document.getElementById('t6-fname-b').textContent = '📋 ' + this.files[0].name;
+});
+
+async function t6Process() {
+  const fa = document.getElementById('t6-file-a').files[0];
+  const fb = document.getElementById('t6-file-b').files[0];
+  if (!fa || !fb) { setStatus('t6-status','Selecione os dois arquivos.','err'); return; }
+  setStatus('t6-status','Processando…');
+  try {
+    const textA = await readFileText(fa);
+    const textB = await readFileText(fb);
+
+    const FILTER_STR = '00100000600';
+    const linesA = textA.split('\n').map(l => l.trimEnd());
+    const linesB = textB.split('\n').filter(l => l.trim());
+
+    // Build lookup set from file B col 2 (index 1)
+    const setB = new Set();
+    for (const line of linesB) {
+      const cols = line.split(';');
+      if (cols[1]) setB.add(parseInt(cols[1].trim(), 10));
+    }
+
+    const validated = [], exceptions = [], filteredLines = [];
+    let lstart = parseInt(document.getElementById('t6-lstart').value)||0;
+    let lend   = parseInt(document.getElementById('t6-lend').value)||0;
+
+    linesA.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      if (!line.includes(FILTER_STR)) {
+        // Not target line — include in clean file unless in removal range
+        if (!lstart || lineNum < lstart || lineNum > lend) filteredLines.push(line);
+        return;
+      }
+      const cols = line.split(';');
+      const mat = parseInt(cols[0].trim(), 10);
+      if (setB.has(mat)) {
+        validated.push(line);
+        if (!lstart || lineNum < lstart || lineNum > lend) filteredLines.push(line);
+      } else {
+        exceptions.push(`LINHA_${lineNum};` + line);
+        // do NOT include in clean
+      }
+    });
+
+    const suf = document.getElementById('t6-clean-suffix').value.trim();
+    const cleanName = (fa.name.replace(/\.[^.]+$/,'') + (suf||'_ajustado') + (fa.name.match(/\.[^.]+$/)?.[0]||'.txt'));
+
+    t6Blobs.v = new Blob([validated.join('\r\n')], {type:'text/plain;charset=utf-8'});
+    t6Blobs.e = new Blob([exceptions.join('\r\n')], {type:'text/plain;charset=utf-8'});
+    t6Blobs.c = new Blob([filteredLines.join('\r\n')], {type:'text/plain;charset=utf-8'});
+    t6Blobs._cleanName = cleanName;
+
+    document.getElementById('t6-cnt-v').textContent = validated.length;
+    document.getElementById('t6-cnt-e').textContent = exceptions.length;
+    document.getElementById('t6-cnt-c').textContent = filteredLines.length;
+    ['v','e','c'].forEach(k => document.getElementById('t6-dl-'+k).disabled = false);
+    document.getElementById('t6-results').style.display = 'grid';
+    setStatus('t6-status', `✔ ${validated.length} match | ${exceptions.length} sem match | ${filteredLines.length} linhas no arquivo limpo`, 'ok');
+  } catch(e) { setStatus('t6-status','Erro: '+e.message,'err'); }
+}
+
+function t6Dl(k) {
+  const names = { v:'dados_validados.csv', e:'excecoes_sem_match.csv', c: t6Blobs._cleanName||'arquivo_limpo.txt' };
+  triggerDownload(t6Blobs[k], names[k]);
+}
+</script>
+</body>
+</html>
